@@ -17,6 +17,7 @@ import java.util.List;
 public class MatchingController {
 
     private final MatchingService matchingService;
+    private final AcceptanceService acceptanceService;
     private final DonorMatchRepository matchRepository;
     private final DonorRepository donorRepository;
 
@@ -39,5 +40,14 @@ public class MatchingController {
 
         List<DonorMatch> matches = matchRepository.findByDonorIdOrderByNotifiedAtDesc(donor.getId());
         return ResponseEntity.ok(matches.stream().map(DonorMatchResponse::fromEntity).toList());
+    }
+
+    @PostMapping("/requests/{requestId}/accept")
+    public ResponseEntity<AcceptanceResponse> acceptRequest(
+            @PathVariable Long requestId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        AcceptanceResponse response = acceptanceService.acceptRequest(requestId, userDetails.getUsername());
+        return ResponseEntity.ok(response);
     }
 }
