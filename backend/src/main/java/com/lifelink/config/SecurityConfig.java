@@ -53,6 +53,7 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/error", "/ws/**", "/ws-direct/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/hospitals").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/hospitals/**").hasAnyRole("HOSPITAL", "ADMIN")
                 .requestMatchers("/api/donors/**").hasAnyRole("DONOR", "ADMIN")
