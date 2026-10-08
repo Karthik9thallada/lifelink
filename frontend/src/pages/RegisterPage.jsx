@@ -54,11 +54,8 @@ export default function RegisterPage() {
           bloodGroup,
           componentType,
           available: true,
-          location: {
-            latitude: 12.9716,
-            longitude: 77.5946,
-            address: 'Bangalore Central, Karnataka',
-          },
+          latitude: 12.9716,
+          longitude: 77.5946,
         });
         navigate('/donor/dashboard');
       } else if (role === 'HOSPITAL') {
@@ -67,11 +64,8 @@ export default function RegisterPage() {
           address: address || 'MG Road, Bangalore',
           emergencyPhone: emergencyPhone || phone,
           licenseNumber: licenseNumber || 'HOSP-' + Math.floor(1000 + Math.random() * 9000),
-          location: {
-            latitude: 12.9716,
-            longitude: 77.5946,
-            address: address || 'MG Road, Bangalore',
-          },
+          latitude: 12.9716,
+          longitude: 77.5946,
         });
         navigate('/hospital/dashboard');
       } else {

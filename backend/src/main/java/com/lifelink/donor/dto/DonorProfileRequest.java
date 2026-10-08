@@ -36,4 +36,16 @@ public class DonorProfileRequest {
 
     @Builder.Default
     private Boolean available = true;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("location")
+    public void setLocation(java.util.Map<String, Object> loc) {
+        if (loc != null) {
+            if (loc.containsKey("latitude") && loc.get("latitude") instanceof Number n) {
+                this.latitude = n.doubleValue();
+            }
+            if (loc.containsKey("longitude") && loc.get("longitude") instanceof Number n) {
+                this.longitude = n.doubleValue();
+            }
+        }
+    }
 }

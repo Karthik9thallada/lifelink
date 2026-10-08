@@ -34,4 +34,16 @@ public class HospitalProfileRequest {
     @DecimalMin(value = "-180.0", message = "Longitude must be >= -180.0")
     @DecimalMax(value = "180.0", message = "Longitude must be <= 180.0")
     private Double longitude;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("location")
+    public void setLocation(java.util.Map<String, Object> loc) {
+        if (loc != null) {
+            if (loc.containsKey("latitude") && loc.get("latitude") instanceof Number n) {
+                this.latitude = n.doubleValue();
+            }
+            if (loc.containsKey("longitude") && loc.get("longitude") instanceof Number n) {
+                this.longitude = n.doubleValue();
+            }
+        }
+    }
 }
