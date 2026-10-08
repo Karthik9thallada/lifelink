@@ -13,6 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U lifelink -d lifelink"]
       interval: 5s
@@ -33,6 +34,40 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  lifelink-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lifelink-backend
+    restart: always
+    depends_on:
+      lifelink-postgres:
+        condition: service_healthy
+      lifelink-redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://lifelink-postgres:5432/lifelink
+      SPRING_DATASOURCE_USERNAME: lifelink
+      SPRING_DATASOURCE_PASSWORD: lifelink_secret
+      SPRING_DATA_REDIS_HOST: lifelink-redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      LIFELINK_JWT_SECRET: c7e5b6a18d9f4c2e0b3a7d5e9f1a3b5c7d9e1f3a5b7c9d1e3f5a7b9c1d3e5f7a
+      LIFELINK_JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+
+  lifelink-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: lifelink-frontend
+    restart: always
+    depends_on:
+      - lifelink-backend
+    ports:
+      - "3000:80"
 
 volumes:
   postgres_data:

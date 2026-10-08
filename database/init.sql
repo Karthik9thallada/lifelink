@@ -1,14 +1,9 @@
 -- ============================================================================
--- LifeLink Database Setup Script
+-- LifeLink Database Initialization Script
 -- ============================================================================
 
--- Create database
-CREATE DATABASE lifelink;
-
-\c lifelink;
-
--- Enable PostGIS extension for spatial donor-hospital matching
+-- Enable PostGIS spatial extension
 CREATE EXTENSION IF NOT EXISTS postgis;
 
--- Check PostGIS installation version
+-- Verify PostGIS status
 SELECT PostGIS_Version();
