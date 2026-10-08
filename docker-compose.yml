@@ -48,6 +48,7 @@ services:
         condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://lifelink-postgres:5432/lifelink
+      SPRING_DATASOURCE_DRIVER: org.postgresql.Driver
       SPRING_DATASOURCE_USERNAME: lifelink
       SPRING_DATASOURCE_PASSWORD: lifelink_secret
       SPRING_DATA_REDIS_HOST: lifelink-redis

@@ -26,3 +26,6 @@ application-local.yml
 *.log
 *.tmp
 *.bak
+backend/data/
+data/
+*.db
