@@ -27,6 +27,7 @@ public class MatchingService {
     private final CompatibilityService compatibilityService;
     private final EligibilityService eligibilityService;
     private final RankingService rankingService;
+    private final com.lifelink.notification.NotificationService notificationService;
 
     private static final double EARTH_RADIUS_KM = 6371.0;
 
@@ -109,6 +110,28 @@ public class MatchingService {
             request.setStatus(RequestStatus.SEARCHING); // remains searching awaiting radius expansion
         }
         requestRepository.save(request);
+
+        // 7. Dispatch WebSocket notifications
+        for (DonorMatch match : savedMatches) {
+            notificationService.notifyDonor(
+                    match.getDonor().getId(),
+                    "EMERGENCY_MATCH",
+                    requestId,
+                    null,
+                    "Urgent " + request.getBloodGroup() + " " + request.getComponentType() +
+                            " required at " + request.getHospital().getHospitalName() +
+                            " (" + match.getDistance() + " km away)"
+            );
+        }
+
+        if (!savedMatches.isEmpty()) {
+            notificationService.notifyRequestUpdate(
+                    requestId,
+                    "MATCHES_FOUND",
+                    savedMatches.size(),
+                    savedMatches.size() + " compatible donors notified within " + maxRadiusKm + " km radius"
+            );
+        }
 
         log.info("Request #{}: Found and created {} new donor matches within {} km radius",
                 requestId, savedMatches.size(), maxRadiusKm);

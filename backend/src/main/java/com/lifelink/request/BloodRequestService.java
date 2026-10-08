@@ -18,6 +18,7 @@ public class BloodRequestService {
 
     private final BloodRequestRepository bloodRequestRepository;
     private final HospitalRepository hospitalRepository;
+    private final com.lifelink.notification.NotificationService notificationService;
 
     @Transactional
     public BloodRequestResponse createRequest(String userEmail, CreateBloodRequestDto dto) {
@@ -47,7 +48,10 @@ public class BloodRequestService {
                 saved.getId(), hospital.getHospitalName(), saved.getUnitsRequired(),
                 saved.getBloodGroup(), saved.getComponentType());
 
-        return mapToResponse(saved);
+        BloodRequestResponse response = mapToResponse(saved);
+        notificationService.broadcastEmergencyFeed("REQUEST_CREATED", response, "Urgent blood request posted by " + hospital.getHospitalName());
+
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -80,6 +84,9 @@ public class BloodRequestService {
         request.setStatus(RequestStatus.CANCELLED);
         BloodRequest saved = bloodRequestRepository.save(request);
         log.info("Cancelled blood request #{} by hospital '{}'", requestId, request.getHospital().getHospitalName());
+
+        notificationService.notifyRequestUpdate(requestId, "REQUEST_CANCELLED", null, "Blood request #" + requestId + " has been cancelled");
+        notificationService.broadcastEmergencyFeed("REQUEST_CANCELLED", requestId, "Blood request #" + requestId + " has been cancelled");
 
         return mapToResponse(saved);
     }

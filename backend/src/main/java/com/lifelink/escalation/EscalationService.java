@@ -20,6 +20,7 @@ public class EscalationService {
     private final BloodRequestRepository requestRepository;
     private final MatchingService matchingService;
     private final EscalationPolicy escalationPolicy;
+    private final com.lifelink.notification.NotificationService notificationService;
 
     /**
      * Escalates a blood request to the next wider search radius tier when donors do not respond in time.
@@ -54,6 +55,13 @@ public class EscalationService {
         request.setCurrentRadius(nextRadius);
         request.setStatus(RequestStatus.ESCALATED);
         requestRepository.save(request);
+
+        notificationService.notifyRequestUpdate(
+                requestId,
+                "RADIUS_ESCALATED",
+                nextRadius,
+                "Search radius escalated to " + nextRadius + " km"
+        );
 
         // Run matching engine within the expanded radius
         return matchingService.findAndMatchDonors(requestId);

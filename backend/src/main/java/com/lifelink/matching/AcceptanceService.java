@@ -23,6 +23,7 @@ public class AcceptanceService {
     private final DonorMatchRepository matchRepository;
     private final DonorRepository donorRepository;
     private final RedisLockService redisLockService;
+    private final com.lifelink.notification.NotificationService notificationService;
 
     /**
      * Atomically handles donor acceptance using distributed locking.
@@ -110,6 +111,18 @@ public class AcceptanceService {
             }
 
             requestRepository.save(request);
+
+            notificationService.notifyRequestUpdate(
+                    requestId,
+                    "DONOR_ACCEPTED",
+                    java.util.Map.of(
+                            "donorName", donor.getUser().getName(),
+                            "unitsFulfilled", newFulfilled,
+                            "unitsRequired", request.getUnitsRequired(),
+                            "status", request.getStatus().name()
+                    ),
+                    "Donor " + donor.getUser().getName() + " has accepted! (" + newFulfilled + "/" + request.getUnitsRequired() + " units secured)"
+            );
 
             log.info("Donor #{} ({}) ACCEPTED request #{}. Units: {}/{}",
                     donor.getId(), donor.getUser().getName(), requestId, newFulfilled, request.getUnitsRequired());
