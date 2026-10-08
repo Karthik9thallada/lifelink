@@ -40,13 +40,25 @@ class DonorControllerTest {
     private DonorRepository donorRepository;
 
     @Autowired
+    private com.lifelink.matching.DonorMatchRepository donorMatchRepository;
+
+    @Autowired
+    private com.lifelink.request.BloodRequestRepository bloodRequestRepository;
+
+    @Autowired
+    private com.lifelink.hospital.HospitalRepository hospitalRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     private String donorToken;
 
     @BeforeEach
     void setUp() throws Exception {
+        donorMatchRepository.deleteAll();
+        bloodRequestRepository.deleteAll();
         donorRepository.deleteAll();
+        hospitalRepository.deleteAll();
         userRepository.deleteAll();
 
         // Register a test donor to get a JWT

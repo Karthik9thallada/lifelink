@@ -41,6 +41,12 @@ class BloodRequestControllerTest {
     private BloodRequestRepository bloodRequestRepository;
 
     @Autowired
+    private com.lifelink.matching.DonorMatchRepository donorMatchRepository;
+
+    @Autowired
+    private com.lifelink.donor.DonorRepository donorRepository;
+
+    @Autowired
     private HospitalRepository hospitalRepository;
 
     @Autowired
@@ -50,7 +56,9 @@ class BloodRequestControllerTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        donorMatchRepository.deleteAll();
         bloodRequestRepository.deleteAll();
+        donorRepository.deleteAll();
         hospitalRepository.deleteAll();
         userRepository.deleteAll();
 
