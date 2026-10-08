@@ -1,0 +1,28 @@
+# Build directories
+target/
+**/target/
+build/
+dist/
+node_modules/
+**/node_modules/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# Environment and sensitive config
+.env
+.env.*
+application-local.properties
+application-local.yml
+
+# Logs & temp
+*.log
+*.tmp
+*.bak
