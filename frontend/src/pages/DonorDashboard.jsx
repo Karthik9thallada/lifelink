@@ -295,13 +295,13 @@ export default function DonorDashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {matches.map((m) => {
+            {matches.map((m, index) => {
               const isAccepted = m.status === 'ACCEPTED';
               const isExpired = m.status === 'EXPIRED';
 
               return (
                 <div
-                  key={m.matchId || m.id}
+                  key={m.matchId != null ? `match-${m.matchId}` : `match-${index}`}
                   className={`p-6 rounded-2xl border transition-all space-y-4 ${
                     isAccepted
                       ? 'bg-emerald-950/20 border-emerald-500/40 shadow-lg shadow-emerald-950/10'

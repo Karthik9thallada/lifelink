@@ -725,9 +725,9 @@ export default function HospitalDashboard() {
                   </p>
                 </div>
               ) : (
-                selectedMatches.matches.map((m) => (
+                selectedMatches.matches.map((m, idx) => (
                   <div
-                    key={m.matchId || m.id}
+                    key={m.matchId != null ? `match-${m.matchId}` : `match-${idx}`}
                     className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all ${
                       m.status === 'ACCEPTED'
                         ? 'bg-emerald-950/20 border-emerald-500/40'
