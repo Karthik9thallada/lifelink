@@ -15,8 +15,8 @@ RUN apk add --no-cache curl
 COPY --from=builder /app/target/lifelink-*.jar app.jar
 
 ENV SPRING_PROFILES_ACTIVE=prod
-ENV SERVER_PORT=8080
+ENV PORT=8080
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-XX:+UseZGC", "-XX:+ZGenerational", "-Xmx512m", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "java -XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Xms128m -Xmx384m -Dserver.port=${PORT:-8080} -jar app.jar"]

@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { hospitalApi } from '../api/hospitalApi';
 import { requestApi } from '../api/requestApi';
 import { useWebSocket } from '../context/WebSocketContext';
 import { 
   Hospital, PlusCircle, Radio, Users, CheckCircle2, AlertCircle, RefreshCw, 
   XCircle, ArrowUpRight, ShieldCheck, Clock, MapPin, Zap, Activity, Droplet, 
-  PhoneCall, ChevronRight, Filter, AlertTriangle, Check
+  PhoneCall, ChevronRight, Filter, AlertTriangle, Check, HeartPulse, Send
 } from 'lucide-react';
 
 export default function HospitalDashboard() {
-  const { subscribeToTopic } = useWebSocket();
+  const { subscribeToTopic, connected } = useWebSocket();
   const [hospital, setHospital] = useState(null);
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,16 +41,16 @@ export default function HospitalDashboard() {
   ];
 
   const componentOptions = [
-    { value: 'WHOLE_BLOOD', label: 'Whole Blood', desc: 'Standard emergency trauma' },
-    { value: 'RBC', label: 'Red Blood Cells (RBC)', desc: 'Severe anemia & blood loss' },
-    { value: 'PLASMA', label: 'Plasma', desc: 'Burn trauma & clotting support' },
-    { value: 'PLATELETS', label: 'Platelets', desc: 'Oncology & massive bleeding' },
+    { value: 'WHOLE_BLOOD', label: 'Whole Blood', desc: 'Trauma & acute blood loss' },
+    { value: 'RBC', label: 'Red Blood Cells (RBC)', desc: 'Severe anemia & surgery' },
+    { value: 'PLASMA', label: 'Plasma', desc: 'Burn trauma & coagulation' },
+    { value: 'PLATELETS', label: 'Platelets', desc: 'Oncology & active hemorrhage' },
   ];
 
   const urgencyOptions = [
-    { value: 'CRITICAL', label: 'Critical', color: 'border-red-500 bg-red-500/10 text-red-400', badge: 'bg-red-500/20 text-red-400' },
-    { value: 'URGENT', label: 'Urgent', color: 'border-amber-500 bg-amber-500/10 text-amber-400', badge: 'bg-amber-500/20 text-amber-400' },
-    { value: 'NORMAL', label: 'Normal', color: 'border-blue-500 bg-blue-500/10 text-blue-400', badge: 'bg-blue-500/20 text-blue-400' },
+    { value: 'CRITICAL', label: 'Critical', color: 'border-red-500 bg-red-500/10 text-red-400', badge: 'bg-red-500/20 text-red-400 border-red-500/30' },
+    { value: 'URGENT', label: 'Urgent', color: 'border-amber-500 bg-amber-500/10 text-amber-400', badge: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    { value: 'NORMAL', label: 'Normal', color: 'border-blue-500 bg-blue-500/10 text-blue-400', badge: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   ];
 
   const getLocalFormattedTime = (hours) => {
@@ -59,9 +59,9 @@ export default function HospitalDashboard() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   };
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const hosp = await hospitalApi.getProfile();
       setHospital(hosp);
 
@@ -70,7 +70,7 @@ export default function HospitalDashboard() {
     } catch (err) {
       console.error('Failed to load hospital dashboard:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -78,30 +78,32 @@ export default function HospitalDashboard() {
     loadData();
   }, []);
 
-  // Subscribe to live events for requests
+  // Subscribe to live broadcast feed on mount
   useEffect(() => {
-    if (!requests || requests.length === 0) return;
-
-    const unsubs = requests.map((req) => {
-      return subscribeToTopic(`/topic/requests/${req.id}`, (event) => {
-        setNotification(`📡 Request #${req.id} Live Update: ${event.message}`);
-        requestApi.getMyRequests().then((res) => setRequests(res || []));
-      });
+    const unsubscribe = subscribeToTopic('/topic/requests', (event) => {
+      if (event?.message) {
+        setNotification(`📡 Live Grid Update: ${event.message}`);
+      }
+      // Silently refresh requests so UI updates in real-time
+      requestApi.getMyRequests().then((res) => {
+        if (res) setRequests(res);
+      }).catch((e) => console.error('Silent refresh failed:', e));
     });
 
     return () => {
-      unsubs.forEach((u) => u && u());
+      if (unsubscribe) unsubscribe();
     };
-  }, [requests.map((r) => r.id).join(',')]);
+  }, [subscribeToTopic]);
 
   const handleCreateRequest = async (e) => {
     e.preventDefault();
     setModalError('');
+    setActionLoading(true);
+
     try {
-      setActionLoading(true);
       const localFuture = getLocalFormattedTime(timeframeHours);
       
-      const created = await requestApi.createRequest({
+      const payload = {
         bloodGroup,
         componentType,
         unitsRequired: parseInt(unitsRequired, 10),
@@ -109,19 +111,35 @@ export default function HospitalDashboard() {
         initialRadius: parseFloat(initialRadius),
         requiredBy: localFuture,
         notes: notes.trim() || 'Urgent medical transfusion required',
-      });
+      };
 
-      // Automatically search for nearby matching donors
-      try {
-        await requestApi.findMatches(created.id);
-      } catch (matchErr) {
-        console.warn('Initial auto-matching finished:', matchErr);
-      }
+      const created = await requestApi.createRequest(payload);
 
+      // IMMEDIATELY prepend to state so it appears in the UI right away!
+      setRequests((prev) => [created, ...prev.filter((r) => r.id !== created.id)]);
+      setFilterStatus('ALL');
       setShowCreateModal(false);
       setNotification(`✅ Emergency Request #${created.id} broadcast! PostGIS matching engine mobilized.`);
       setNotes('');
-      await loadData();
+
+      // Run matching in background and update request state
+      requestApi.findMatches(created.id)
+        .then((matches) => {
+          if (matches && matches.length > 0) {
+            setNotification(`🎯 Request #${created.id}: PostGIS matched & alerted ${matches.length} compatible donor(s)!`);
+          } else {
+            setNotification(`📡 Request #${created.id} broadcast. No immediate donors within ${created.initialRadius} km. Click "Escalate" to expand radius.`);
+          }
+          // Refresh list to show updated SEARCHING status
+          requestApi.getMyRequests().then((res) => {
+            if (res) setRequests(res);
+          });
+        })
+        .catch((matchErr) => {
+          console.warn('Auto-matching:', matchErr);
+          loadData(true);
+        });
+
     } catch (err) {
       console.error('Create request error:', err);
       let errMsg = 'Failed to create emergency request.';
@@ -142,8 +160,13 @@ export default function HospitalDashboard() {
     try {
       setActionLoading(true);
       const matches = await requestApi.findMatches(requestId);
-      setNotification(`🎯 Matching Engine: Mobilized and notified ${matches.length} compatible donors!`);
-      await loadData();
+      setNotification(`🎯 PostGIS Matching: Mobilized and notified ${matches.length} compatible donor(s)!`);
+      const updated = await requestApi.getMyRequests();
+      setRequests(updated || []);
+      // If modal was viewing matches, update it too
+      if (selectedMatches && selectedMatches.requestId === requestId) {
+        setSelectedMatches({ requestId, matches });
+      }
     } catch (err) {
       setNotification(err.response?.data?.message || 'Matching process failed');
     } finally {
@@ -155,8 +178,12 @@ export default function HospitalDashboard() {
     try {
       setActionLoading(true);
       const matches = await requestApi.escalateRequest(requestId);
-      setNotification(`🚀 Search Radius Escalated! Found ${matches.length} additional candidate donors.`);
-      await loadData();
+      setNotification(`🚀 Search Radius Escalated! Mobilized ${matches.length} compatible candidate donor(s).`);
+      const updated = await requestApi.getMyRequests();
+      setRequests(updated || []);
+      if (selectedMatches && selectedMatches.requestId === requestId) {
+        setSelectedMatches({ requestId, matches });
+      }
     } catch (err) {
       setNotification(err.response?.data?.message || 'Escalation failed');
     } finally {
@@ -167,7 +194,7 @@ export default function HospitalDashboard() {
   const handleViewMatches = async (requestId) => {
     try {
       const matches = await requestApi.getRequestMatches(requestId);
-      setSelectedMatches({ requestId, matches });
+      setSelectedMatches({ requestId, matches: matches || [] });
     } catch (err) {
       console.error('Error fetching matches:', err);
     }
@@ -178,7 +205,8 @@ export default function HospitalDashboard() {
     try {
       await requestApi.cancelRequest(requestId);
       setNotification(`Emergency Request #${requestId} has been cancelled.`);
-      await loadData();
+      const updated = await requestApi.getMyRequests();
+      setRequests(updated || []);
     } catch (err) {
       setNotification(err.response?.data?.message || 'Cancellation failed');
     }
@@ -187,35 +215,35 @@ export default function HospitalDashboard() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'OPEN':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">OPEN</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">OPEN</span>;
       case 'SEARCHING':
         return (
-          <span className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-ping" />
+          <span className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
             <span>SEARCHING</span>
           </span>
         );
       case 'ESCALATED':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">ESCALATED</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">ESCALATED</span>;
       case 'MATCHED':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">MATCHED</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">MATCHED</span>;
       case 'FULFILLED':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-600/30 text-emerald-200 border border-emerald-500/40">FULFILLED</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600/30 text-emerald-200 border border-emerald-500/40">FULFILLED</span>;
       case 'CANCELLED':
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">CANCELLED</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-slate-700">CANCELLED</span>;
       default:
-        return <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-700 text-slate-300">{status}</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-700 text-slate-300">{status}</span>;
     }
   };
 
   const filteredRequests = requests.filter((r) => {
     if (filterStatus === 'ALL') return true;
-    if (filterStatus === 'ACTIVE') return r.status === 'SEARCHING' || r.status === 'ESCALATED' || r.status === 'OPEN';
-    if (filterStatus === 'MATCHED') return r.status === 'MATCHED' || r.status === 'FULFILLED';
+    if (filterStatus === 'ACTIVE') return ['SEARCHING', 'ESCALATED', 'OPEN'].includes(r.status);
+    if (filterStatus === 'MATCHED') return ['MATCHED', 'FULFILLED'].includes(r.status);
     return r.status === filterStatus;
   });
 
-  // Calculate quick stats
+  // Calculate metrics
   const totalRequests = requests.length;
   const activeRequests = requests.filter((r) => ['SEARCHING', 'ESCALATED', 'OPEN'].includes(r.status)).length;
   const fulfilledRequests = requests.filter((r) => ['MATCHED', 'FULFILLED'].includes(r.status)).length;
@@ -235,17 +263,17 @@ export default function HospitalDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Hospital Banner */}
+      {/* Hospital Command Banner */}
       <div className="bg-gradient-to-r from-rose-950/40 via-slate-900 to-slate-900 border border-rose-900/30 rounded-3xl p-6 sm:p-8 backdrop-blur-xl relative overflow-hidden shadow-2xl">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center space-x-4">
-            <div className="w-16 h-16 rounded-2xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-inner">
+            <div className="w-16 h-16 rounded-2xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-inner flex-shrink-0">
               <Hospital className="w-8 h-8" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                  {hospital?.hospitalName || 'Emergency Center'}
+                  {hospital?.hospitalName || 'Emergency Command Hub'}
                 </h1>
                 {hospital?.verified ? (
                   <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold">
@@ -289,10 +317,10 @@ export default function HospitalDashboard() {
 
       {/* Real-time notification banner */}
       {notification && (
-        <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700 text-sm flex items-center justify-between shadow-lg animate-in fade-in">
+        <div className="p-4 rounded-2xl bg-slate-800/95 border border-slate-700 text-sm flex items-center justify-between shadow-lg animate-in fade-in">
           <div className="flex items-center space-x-3 text-slate-200">
             <Radio className="w-4 h-4 text-rose-500 animate-pulse flex-shrink-0" />
-            <span>{notification}</span>
+            <span className="font-medium">{notification}</span>
           </div>
           <button onClick={() => setNotification('')} className="text-xs text-slate-400 hover:text-white font-medium ml-4">
             Dismiss
@@ -303,7 +331,7 @@ export default function HospitalDashboard() {
       {/* Quick Metrics Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 backdrop-blur-md">
-          <p className="text-xs text-slate-400 font-medium">Total Posted Requests</p>
+          <p className="text-xs text-slate-400 font-medium">Total Emergencies</p>
           <p className="text-2xl font-black text-white font-mono mt-1">{totalRequests}</p>
         </div>
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 backdrop-blur-md">
@@ -311,13 +339,13 @@ export default function HospitalDashboard() {
           <p className="text-2xl font-black text-amber-400 font-mono mt-1">{activeRequests}</p>
         </div>
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 backdrop-blur-md">
-          <p className="text-xs text-emerald-400 font-medium">Fully Matched</p>
+          <p className="text-xs text-emerald-400 font-medium">Fulfilled / Secured</p>
           <p className="text-2xl font-black text-emerald-400 font-mono mt-1">{fulfilledRequests}</p>
         </div>
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 backdrop-blur-md">
-          <p className="text-xs text-rose-400 font-medium">Total Units Progress</p>
+          <p className="text-xs text-rose-400 font-medium">Units Secured</p>
           <p className="text-2xl font-black text-white font-mono mt-1">
-            {totalUnitsFulfilled} <span className="text-sm font-normal text-slate-500">/ {totalUnitsNeeded}</span>
+            {totalUnitsFulfilled} <span className="text-sm font-normal text-slate-500">/ {totalUnitsNeeded} Units</span>
           </p>
         </div>
       </div>
@@ -328,6 +356,9 @@ export default function HospitalDashboard() {
           <div className="flex items-center space-x-3">
             <Radio className="w-5 h-5 text-rose-500 animate-pulse" />
             <h2 className="text-lg font-bold text-white">Emergency Blood Requests Command List</h2>
+            <span className="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-400">
+              {requests.length} Total
+            </span>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -354,7 +385,7 @@ export default function HospitalDashboard() {
             </div>
 
             <button
-              onClick={loadData}
+              onClick={() => loadData()}
               className="flex items-center space-x-1 text-xs text-slate-400 hover:text-white bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" />
@@ -364,12 +395,22 @@ export default function HospitalDashboard() {
         </div>
 
         {filteredRequests.length === 0 ? (
-          <div className="text-center py-14 px-4 border border-dashed border-slate-800 rounded-2xl bg-slate-900/40">
-            <Droplet className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-300 font-semibold text-sm">No blood requests match this filter.</p>
-            <p className="text-slate-500 text-xs mt-1">
-              Click "Post Emergency Blood Request" above to broadcast an urgent blood or plasma requirement.
+          <div className="text-center py-16 px-4 border border-dashed border-slate-800 rounded-2xl bg-slate-900/40 space-y-3">
+            <Droplet className="w-12 h-12 text-slate-600 mx-auto" />
+            <p className="text-slate-200 font-bold text-base">No blood requests match this filter.</p>
+            <p className="text-slate-400 text-xs max-w-md mx-auto">
+              Broadcast an emergency blood or plasma requirement to mobilize compatible donors in real-time.
             </p>
+            <button
+              onClick={() => {
+                setModalError('');
+                setShowCreateModal(true);
+              }}
+              className="mt-2 inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg transition-all"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Create First Emergency Request</span>
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -399,7 +440,7 @@ export default function HospitalDashboard() {
                       <div className="text-xs text-slate-400 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                         <span>Search Radius: <strong className="text-amber-400 font-mono">{req.currentRadius} km</strong></span>
                         <span>•</span>
-                        <span>Clinical Notes: <span className="text-slate-300 italic">{req.notes || 'None'}</span></span>
+                        <span>Clinical Notes: <span className="text-slate-300 italic">{req.notes || 'Emergency transfusion'}</span></span>
                       </div>
                     </div>
                   </div>
@@ -413,7 +454,7 @@ export default function HospitalDashboard() {
                     <div className="w-36 h-2 bg-slate-800 rounded-full mt-1.5 overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (req.unitsFulfilled / req.unitsRequired) * 100)}%` }}
+                        style={{ width: `${Math.min(100, ((req.unitsFulfilled || 0) / (req.unitsRequired || 1)) * 100)}%` }}
                       />
                     </div>
                   </div>
@@ -625,7 +666,7 @@ export default function HospitalDashboard() {
                   <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                     Required Window
                   </label>
-                  <div className="grid grid-cols-3 gap-1.5 text-xs">
+                  <div className="grid grid-cols-5 gap-1 text-xs">
                     {[1, 2, 4, 12, 24].map((hrs) => (
                       <button
                         type="button"
@@ -718,9 +759,9 @@ export default function HospitalDashboard() {
 
             <div className="max-h-80 overflow-y-auto space-y-3 pr-1">
               {selectedMatches.matches.length === 0 ? (
-                <div className="text-center py-10 px-4 bg-slate-950/40 rounded-2xl border border-dashed border-slate-800">
+                <div className="text-center py-10 px-4 bg-slate-950/40 rounded-2xl border border-dashed border-slate-800 space-y-2">
                   <p className="text-slate-300 font-medium text-sm">No donors matched yet within this radius.</p>
-                  <p className="text-slate-500 text-xs mt-1">
+                  <p className="text-slate-500 text-xs">
                     Click "Escalate Radius Tier" to widen the search boundary to 10 km, 25 km, or 50 km.
                   </p>
                 </div>
@@ -730,7 +771,7 @@ export default function HospitalDashboard() {
                     key={m.matchId != null ? `match-${m.matchId}` : `match-${idx}`}
                     className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-all ${
                       m.status === 'ACCEPTED'
-                        ? 'bg-emerald-950/20 border-emerald-500/40'
+                        ? 'bg-emerald-950/30 border-emerald-500/50 shadow-md shadow-emerald-950/20'
                         : 'bg-slate-800/70 border-slate-700/80'
                     }`}
                   >
@@ -741,7 +782,7 @@ export default function HospitalDashboard() {
                           {m.bloodGroup}
                         </span>
                       </div>
-                      <p className="text-slate-400 flex items-center space-x-2 text-[11px]">
+                      <p className="text-slate-400 flex flex-wrap items-center gap-x-2 text-[11px]">
                         <span>Distance: <strong className="text-amber-400 font-mono">{m.distanceKm != null ? m.distanceKm.toFixed(2) : m.distance} km</strong></span>
                         <span>•</span>
                         <span>Score: <strong className="text-emerald-400 font-mono">{m.score != null ? m.score.toFixed(1) : '-'}</strong></span>
@@ -750,7 +791,7 @@ export default function HospitalDashboard() {
                             <span>•</span>
                             <span className="font-mono text-slate-300 flex items-center space-x-1">
                               <PhoneCall className="w-3 h-3 text-emerald-400" />
-                              <span>{m.donorPhone}</span>
+                              <a href={`tel:${m.donorPhone}`} className="hover:text-emerald-300 underline">{m.donorPhone}</a>
                             </span>
                           </>
                         )}

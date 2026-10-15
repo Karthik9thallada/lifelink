@@ -19,6 +19,7 @@ node_modules/
 # Environment and sensitive config
 .env
 .env.*
+!.env.example
 application-local.properties
 application-local.yml
 

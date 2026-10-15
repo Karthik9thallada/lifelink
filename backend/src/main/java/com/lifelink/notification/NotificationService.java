@@ -53,6 +53,7 @@ public class NotificationService {
 
         try {
             messagingTemplate.convertAndSend(destination, update);
+            messagingTemplate.convertAndSend("/topic/requests", update);
             log.info("Dispatched WebSocket event '{}' for request #{}: {}", eventType, requestId, message);
         } catch (Exception e) {
             log.warn("Failed to dispatch WebSocket message to {}: {}", destination, e.getMessage());

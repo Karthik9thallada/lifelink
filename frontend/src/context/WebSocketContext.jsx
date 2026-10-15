@@ -12,9 +12,21 @@ export const WebSocketProvider = ({ children }) => {
   const subscriptionsRef = useRef(new Map());
 
   useEffect(() => {
-    // Protocol selection: ws:// or wss:// based on window.location
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const brokerUrl = `${protocol}//${window.location.host}/ws`;
+    // Determine broker URL: explicit VITE_WS_BASE_URL, derived from VITE_API_BASE_URL, or current host
+    let brokerUrl;
+    if (import.meta.env.VITE_WS_BASE_URL) {
+      brokerUrl = import.meta.env.VITE_WS_BASE_URL;
+    } else if (import.meta.env.VITE_API_BASE_URL) {
+      const base = import.meta.env.VITE_API_BASE_URL
+        .replace(/^http:\/\//i, 'ws://')
+        .replace(/^https:\/\//i, 'wss://')
+        .replace(/\/api\/?$/i, '')
+        .replace(/\/+$/, '');
+      brokerUrl = `${base}/ws`;
+    } else {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      brokerUrl = `${protocol}//${window.location.host}/ws`;
+    }
 
     const client = new Client({
       brokerURL: brokerUrl,

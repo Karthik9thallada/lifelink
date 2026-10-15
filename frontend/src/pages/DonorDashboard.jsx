@@ -43,10 +43,18 @@ export default function DonorDashboard() {
       donorApi.getMyMatches().then((res) => setMatches(res || []));
     });
 
+    // Also listen to global request updates
+    const unsubFeed = subscribeToTopic('/topic/requests', () => {
+      donorApi.getMyMatches().then((res) => {
+        if (res) setMatches(res);
+      }).catch(() => {});
+    });
+
     return () => {
       if (unsubscribe) unsubscribe();
+      if (unsubFeed) unsubFeed();
     };
-  }, [donor?.id]);
+  }, [donor?.id, subscribeToTopic]);
 
   const handleToggleAvailability = async () => {
     if (!donor) return;

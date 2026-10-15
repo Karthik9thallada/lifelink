@@ -113,42 +113,71 @@ export default function LoginPage() {
         </form>
 
         {/* Demo Fast Login Buttons */}
-        <div className="pt-4 border-t border-slate-700/60 space-y-2">
+        <div className="pt-4 border-t border-slate-700/60 space-y-3">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">
-            One-Click Demo Credentials
+            One-Click Demo Credentials (2 Hospitals • 3 Donors • 1 Admin)
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => fillDemo('apex@lifelink.org', 'password123')}
-              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center space-x-2 transition-all hover:scale-[1.02]"
-            >
-              <Hospital className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-              <span className="truncate font-semibold">Apex Hospital</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo('donora.escl@lifelink.org', 'password123')}
-              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center space-x-2 transition-all hover:scale-[1.02]"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
-              <span className="truncate font-semibold">Rahul (Donor A)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo('donorb.escl@lifelink.org', 'password123')}
-              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center space-x-2 transition-all hover:scale-[1.02]"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="truncate font-semibold">Sunita (Donor B)</span>
-            </button>
+
+          <div className="space-y-1.5">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Hospitals</span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => fillDemo('apex@lifelink.org', 'password123')}
+                className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center space-x-2 transition-all hover:scale-[1.02]"
+              >
+                <Hospital className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span className="truncate font-semibold">Apex Hospital</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillDemo('manipal@lifelink.org', 'password123')}
+                className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center space-x-2 transition-all hover:scale-[1.02]"
+              >
+                <Hospital className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span className="truncate font-semibold">Manipal Hospital</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Donors</span>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => fillDemo('rahul@lifelink.org', 'password123')}
+                className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex flex-col items-center justify-center text-center transition-all hover:scale-[1.02]"
+              >
+                <span className="font-semibold text-[11px] truncate w-full">Rahul</span>
+                <span className="text-[10px] font-mono text-rose-400 font-bold">O+ (~2km)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillDemo('sunita@lifelink.org', 'password123')}
+                className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex flex-col items-center justify-center text-center transition-all hover:scale-[1.02]"
+              >
+                <span className="font-semibold text-[11px] truncate w-full">Sunita</span>
+                <span className="text-[10px] font-mono text-amber-400 font-bold">A+ (~5km)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => fillDemo('vikram@lifelink.org', 'password123')}
+                className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex flex-col items-center justify-center text-center transition-all hover:scale-[1.02]"
+              >
+                <span className="font-semibold text-[11px] truncate w-full">Vikram</span>
+                <span className="text-[10px] font-mono text-purple-400 font-bold">B+ (~4km)</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-1">
             <button
               type="button"
               onClick={() => fillDemo('admin@lifelink.org', 'admin123')}
-              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center space-x-2 transition-all hover:scale-[1.02]"
+              className="w-full p-2 rounded-xl bg-slate-900/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center justify-center space-x-2 transition-all hover:scale-[1.01]"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-              <span className="truncate font-semibold">Administrator</span>
+              <span className="font-semibold">System Administrator (admin@lifelink.org)</span>
             </button>
           </div>
         </div>

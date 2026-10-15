@@ -100,10 +100,10 @@ public class DataSeeder implements CommandLineRunner {
                 .build());
 
         // 3. Donors
-        // Donor A: Rahul Sharma (O+ Whole Blood, Indiranagar: Lat 12.9784, Lon 77.6408 - ~2.5 km away)
+        // Donor 1: Rahul Sharma (O+ Whole Blood, Richmond/Ulsoor: Lat 12.9730, Lon 77.6150 - ~2.2 km from Apex, ~4.5 km from Manipal)
         User rahulUser = userRepository.save(User.builder()
                 .name("Rahul Sharma")
-                .email("donora.escl@lifelink.org")
+                .email("rahul@lifelink.org")
                 .password(passwordEncoder.encode("password123"))
                 .phone("+919900112233")
                 .role(Role.DONOR)
@@ -113,16 +113,16 @@ public class DataSeeder implements CommandLineRunner {
                 .user(rahulUser)
                 .bloodGroup(BloodGroup.O_POSITIVE)
                 .componentType(ComponentType.WHOLE_BLOOD)
-                .location(GEOMETRY_FACTORY.createPoint(new Coordinate(77.6408, 12.9784)))
+                .location(GEOMETRY_FACTORY.createPoint(new Coordinate(77.6150, 12.9730)))
                 .lastDonationDate(LocalDate.now().minusDays(85))
                 .available(true)
                 .eligible(true)
                 .build());
 
-        // Donor B: Sunita Rao (O+ Whole Blood, Whitefield: Lat 12.9698, Lon 77.7499 - ~8.2 km away)
+        // Donor 2: Sunita Rao (A+ Whole Blood, Domlur: Lat 12.9620, Lon 77.6400 - ~5.0 km from Apex, ~1.5 km from Manipal)
         User sunitaUser = userRepository.save(User.builder()
                 .name("Sunita Rao")
-                .email("donorb.escl@lifelink.org")
+                .email("sunita@lifelink.org")
                 .password(passwordEncoder.encode("password123"))
                 .phone("+919900223344")
                 .role(Role.DONOR)
@@ -130,15 +130,15 @@ public class DataSeeder implements CommandLineRunner {
 
         donorRepository.save(Donor.builder()
                 .user(sunitaUser)
-                .bloodGroup(BloodGroup.O_POSITIVE)
+                .bloodGroup(BloodGroup.A_POSITIVE)
                 .componentType(ComponentType.WHOLE_BLOOD)
-                .location(GEOMETRY_FACTORY.createPoint(new Coordinate(77.7499, 12.9698)))
+                .location(GEOMETRY_FACTORY.createPoint(new Coordinate(77.6400, 12.9620)))
                 .lastDonationDate(LocalDate.now().minusDays(70))
                 .available(true)
                 .eligible(true)
                 .build());
 
-        // Donor C: Vikram Singh (B+ Whole Blood, Koramangala: Lat 12.9352, Lon 77.6245 - ~4.5 km away)
+        // Donor 3: Vikram Singh (B+ Whole Blood, Koramangala: Lat 12.9450, Lon 77.6200 - ~4.1 km from Apex, ~3.9 km from Manipal)
         User vikramUser = userRepository.save(User.builder()
                 .name("Vikram Singh")
                 .email("vikram@lifelink.org")
@@ -151,32 +151,13 @@ public class DataSeeder implements CommandLineRunner {
                 .user(vikramUser)
                 .bloodGroup(BloodGroup.B_POSITIVE)
                 .componentType(ComponentType.WHOLE_BLOOD)
-                .location(GEOMETRY_FACTORY.createPoint(new Coordinate(77.6245, 12.9352)))
+                .location(GEOMETRY_FACTORY.createPoint(new Coordinate(77.6200, 12.9450)))
                 .lastDonationDate(LocalDate.now().minusDays(95))
                 .available(true)
                 .eligible(true)
                 .build());
 
-        // Donor D: Priya Patel (AB+ Plasma, MG Road: Lat 12.9716, Lon 77.5946 - 0.2 km away)
-        User priyaUser = userRepository.save(User.builder()
-                .name("Priya Patel")
-                .email("priya.donor@lifelink.org")
-                .password(passwordEncoder.encode("password123"))
-                .phone("+919900445566")
-                .role(Role.DONOR)
-                .build());
-
-        donorRepository.save(Donor.builder()
-                .user(priyaUser)
-                .bloodGroup(BloodGroup.AB_POSITIVE)
-                .componentType(ComponentType.PLASMA)
-                .location(GEOMETRY_FACTORY.createPoint(new Coordinate(77.5960, 12.9716)))
-                .lastDonationDate(LocalDate.now().minusDays(30))
-                .available(true)
-                .eligible(true)
-                .build());
-
-        // 4. Initial Emergency Blood Request for Apex Hospital
+        // 4. Initial Emergency Blood Request for Apex Hospital (O+ Whole Blood, 2 units)
         BloodRequest sampleReq = bloodRequestRepository.save(BloodRequest.builder()
                 .hospital(apexHospital)
                 .bloodGroup(BloodGroup.O_POSITIVE)
@@ -186,7 +167,7 @@ public class DataSeeder implements CommandLineRunner {
                 .urgency(Urgency.CRITICAL)
                 .initialRadius(5.0)
                 .currentRadius(5.0)
-                .requiredBy(LocalDateTime.now().plusHours(2))
+                .requiredBy(LocalDateTime.now().plusHours(4))
                 .status(RequestStatus.OPEN)
                 .notes("ICU Trauma Emergency: Patient in Critical Condition (Blood Loss)")
                 .build());
@@ -194,6 +175,6 @@ public class DataSeeder implements CommandLineRunner {
         // Execute initial matching so Rahul Sharma is matched immediately!
         matchingService.findAndMatchDonors(sampleReq.getId());
 
-        log.info("✅ LifeLink demo grid seeded successfully with 2 Hospitals, 4 Donors, and 1 Active ICU Request!");
+        log.info("✅ LifeLink demo grid seeded successfully with 2 Hospitals, 3 Donors, and 1 Administrator!");
     }
 }
